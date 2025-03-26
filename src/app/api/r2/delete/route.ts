@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/supabase';
+import { getSession } from '@/lib/session';
 
 // This API route handles deletion of objects from R2
 export async function DELETE(request: NextRequest) {

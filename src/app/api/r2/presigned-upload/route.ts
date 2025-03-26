@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/supabase';
+import { getSession } from '@/lib/session';
 
 // This API route generates presigned URLs for direct uploads to R2
 export async function POST(request: NextRequest) {
