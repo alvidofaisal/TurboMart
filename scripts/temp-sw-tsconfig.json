@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "lib": [
+      "es2020",
+      "webworker",
+      "dom"
+    ],
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": false,
+    "outDir": "/Users/apple/Projects/TurboMart/public"
+  },
+  "include": [
+    "/Users/apple/Projects/TurboMart/src/app/service-worker.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
