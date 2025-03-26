@@ -3,12 +3,6 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-// Static metadata to avoid database queries
-export const metadata = {
-  title: "404 - Not Found | TurboMart",
-  description: "The page you are looking for does not exist"
-};
-
 export default function NotFound() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
