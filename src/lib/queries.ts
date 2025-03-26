@@ -45,119 +45,140 @@ const mockData = {
 let pgClient: PGClient | undefined;
 let sql: ((strings: TemplateStringsArray, ...values: any[]) => Promise<any>) | undefined;
 
-if (!isBuild) {
-  // Lazy import Client to avoid issues during build
-  const { Client } = require('pg');
-  
-  // Determine which connection string to use
-  const connectionString = process.env.COCKROACH_DB_URL || process.env.POSTGRES_URL;
-  if (!connectionString) {
-    throw new Error('Missing database connection string. Please provide either COCKROACH_DB_URL or POSTGRES_URL in your environment variables.');
-  }
-
-  // Debug log connection string format (removes credentials for safety)
-  const debugConnectionString = connectionString.replace(/\/\/[^:]+:[^@]+@/, '//USER:PASSWORD@');
-  console.log(`Database connection string format: ${debugConnectionString}`);
-
-  // Create a database client using the native pg library which works better with CockroachDB
-  pgClient = new Client({
-    connectionString,
-    // Add these settings to improve reliability with CockroachDB
-    query_timeout: 10000, // 10 seconds
-    connectionTimeoutMillis: 5000, // 5 seconds
-    // Ensure native TLS which works better with CockroachDB
-    ssl: {
-      rejectUnauthorized: true,
-    }
-  });
-
-  // Connect immediately to verify the connection works
-  pgClient.connect()
-    .then(() => console.log('Successfully connected to CockroachDB'))
-    .catch((err: Error) => console.error('Failed to connect to CockroachDB:', err.message));
-
-  // Helper function to execute SQL queries with proper TypeScript types
+// Define mock sql function for build time
+if (isBuild) {
+  // Mock implementation for build
   sql = async (strings: TemplateStringsArray, ...values: any[]) => {
-    try {
-      // Convert the tagged template to a parameterized query
-      let query = '';
-      let paramIndex = 1;
-      let params = [];
-
-      // Build the query string with $1, $2, etc. placeholders
-      for (let i = 0; i < strings.length; i++) {
-        query += strings[i];
-        
-        if (i < values.length) {
-          query += `$${paramIndex}`;
-          paramIndex++;
-          params.push(values[i]);
-        }
-      }
-      
-      // Log the query for debugging (with sensitive data removed)
-      const debugQuery = {
-        text: query,
-        params: params.map(v => typeof v === 'string' && v.length > 20 ? v.substring(0, 10) + '...' : v)
-      };
-      console.log('Executing query:', JSON.stringify(debugQuery));
-      
-      // Execute the query
-      if (!pgClient) throw new Error('Database client not initialized');
-      const result = await pgClient.query(query, params);
-      return result;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Database query error:', errorMessage);
-      // Try to reconnect on connection errors
-      if (errorMessage.includes('connection') || (error instanceof Error && 'code' in error && error.code === 'ECONNRESET')) {
-        console.log('Attempting to reconnect...');
-        try {
-          if (!pgClient) throw new Error('Database client not initialized');
-          await pgClient.end();
-          await pgClient.connect();
-          console.log('Reconnection successful');
-        } catch (reconnectError: unknown) {
-          console.error('Failed to reconnect:', reconnectError instanceof Error ? reconnectError.message : String(reconnectError));
-        }
-      }
-      throw error;
-    }
+    console.log('Build-time mock database query:', strings.join('?'));
+    // Return empty result for all queries during build
+    return { rows: [] };
   };
+} else {
+  try {
+    // Lazy import Client to avoid issues during build
+    const { Client } = require('pg');
+    
+    // Determine which connection string to use
+    const connectionString = process.env.COCKROACH_DB_URL || process.env.POSTGRES_URL;
+    if (!connectionString) {
+      throw new Error('Missing database connection string (COCKROACH_DB_URL or POSTGRES_URL)');
+    }
+
+    // Debug log connection string format (removes credentials for safety)
+    const debugConnectionString = connectionString.replace(/\/\/[^:]+:[^@]+@/, '//USER:PASSWORD@');
+    console.log(`Database connection string format: ${debugConnectionString}`);
+
+    // Create a database client using the native pg library which works better with CockroachDB
+    pgClient = new Client({
+      connectionString,
+      // Add these settings to improve reliability with CockroachDB
+      query_timeout: 10000, // 10 seconds
+      connectionTimeoutMillis: 5000, // 5 seconds
+      // Ensure native TLS which works better with CockroachDB
+      ssl: {
+        rejectUnauthorized: true,
+      }
+    });
+
+    // Connect immediately to verify the connection works
+    if (pgClient) {
+      pgClient.connect()
+        .then(() => console.log('Successfully connected to CockroachDB'))
+        .catch((err: Error) => console.error('Failed to connect to CockroachDB:', err.message));
+    }
+
+    // Helper function to execute SQL queries with proper TypeScript types
+    sql = async (strings: TemplateStringsArray, ...values: any[]) => {
+      try {
+        // Convert the tagged template to a parameterized query
+        let query = '';
+        let paramIndex = 1;
+        let params = [];
+
+        // Build the query string with $1, $2, etc. placeholders
+        for (let i = 0; i < strings.length; i++) {
+          query += strings[i];
+          
+          if (i < values.length) {
+            query += `$${paramIndex}`;
+            paramIndex++;
+            params.push(values[i]);
+          }
+        }
+        
+        // Log the query for debugging (with sensitive data removed)
+        const debugQuery = {
+          text: query,
+          params: params.map(v => typeof v === 'string' && v.length > 20 ? v.substring(0, 10) + '...' : v)
+        };
+        console.log('Executing query:', JSON.stringify(debugQuery));
+        
+        // Execute the query
+        if (!pgClient) throw new Error('Database client not initialized');
+        const result = await pgClient.query(query, params);
+        return result;
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Database query error:', errorMessage);
+        // Try to reconnect on connection errors
+        if (errorMessage.includes('connection') || (error instanceof Error && 'code' in error && error.code === 'ECONNRESET')) {
+          console.log('Attempting to reconnect...');
+          try {
+            if (!pgClient) throw new Error('Database client not initialized');
+            await pgClient.end();
+            await pgClient.connect();
+            console.log('Reconnection successful');
+          } catch (reconnectError: unknown) {
+            console.error('Failed to reconnect:', reconnectError instanceof Error ? reconnectError.message : String(reconnectError));
+          }
+        }
+        throw error;
+      }
+    };
+  } catch (error) {
+    console.error('Error initializing database client:', error);
+    // Provide a fallback mock implementation if initialization fails
+    sql = async () => ({ rows: [] });
+  }
 }
 
 export async function getUser() {
   // During build time, return null for user
   if (isBuild) return null;
   
-  const sessionCookie = (await cookies()).get("session");
-  if (!sessionCookie || !sessionCookie.value) {
+  try {
+    const sessionCookie = (await cookies()).get("session");
+    if (!sessionCookie || !sessionCookie.value) {
+      return null;
+    }
+
+    const sessionData = await verifyToken(sessionCookie.value);
+    if (
+      !sessionData ||
+      !sessionData.user ||
+      typeof sessionData.user.id !== "number"
+    ) {
+      return null;
+    }
+
+    if (new Date(sessionData.expires) < new Date()) {
+      return null;
+    }
+
+    if (!sql) throw new Error('SQL query function not initialized');
+    const { rows } = await sql`
+      SELECT * FROM users WHERE id = ${sessionData.user.id} LIMIT 1
+    `;
+
+    if (rows.length === 0) {
+      return null;
+    }
+
+    return rows[0];
+  } catch (error) {
+    console.error('Error in getUser:', error);
     return null;
   }
-
-  const sessionData = await verifyToken(sessionCookie.value);
-  if (
-    !sessionData ||
-    !sessionData.user ||
-    typeof sessionData.user.id !== "number"
-  ) {
-    return null;
-  }
-
-  if (new Date(sessionData.expires) < new Date()) {
-    return null;
-  }
-
-  if (!sql) throw new Error('SQL query function not initialized');
-  const { rows } = await sql`
-    SELECT * FROM users WHERE id = ${sessionData.user.id} LIMIT 1
-  `;
-
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return rows[0];
 }
 
 export const getProductsForSubcategory = unstable_cache(
