@@ -221,6 +221,8 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 - ✅ Fixed issues with application structure and Next.js App Router
 - ✅ Resolved React hydration mismatches for improved client rendering
 - ✅ Optimized root layout structure for better component hierarchy
+- ✅ Fixed not-found page to use client components to prevent database access during build
+- ✅ Replaced LinkedDOM with regex-based HTML parsing to avoid canvas module dependency
 
 #### Phase 4: Client-Side Enhancements
 - ✅ Implemented service workers for offline support
