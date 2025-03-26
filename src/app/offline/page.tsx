@@ -1,11 +1,11 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 // Use a regular anchor tag instead of Next.js Link component
 // to avoid type declaration issues in this environment
 
-export const metadata = {
-  title: "You're offline | TurboMart",
-  description: "You are currently offline. Please check your connection.",
-};
+import { metadata } from "./metadata";
+import { OfflineActions } from "./offline-actions";
 
 export default function OfflinePage() {
   return (
@@ -36,17 +36,7 @@ export default function OfflinePage() {
           Don't worry—TurboMart saved some content for offline browsing. You can
           still access previously viewed pages and images.
         </p>
-        <div className="flex flex-col gap-4">
-          <Button className="w-full" onClick={() => window.location.href = '/'}>
-            Go to Homepage
-          </Button>
-          <Button
-            className="w-full bg-white text-accent1 border border-accent1 hover:bg-gray-50"
-            onClick={() => window.location.reload()}
-          >
-            Try Again
-          </Button>
-        </div>
+        <OfflineActions />
       </div>
       
       <div className="mt-12 text-center text-sm text-gray-500">

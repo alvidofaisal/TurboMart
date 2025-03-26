@@ -5,16 +5,21 @@ import { getCategory, getCategoryProductCount } from "@/lib/queries";
 import { db } from "@/db";
 import { categories } from "@/db/schema";
 
+// Set to dynamic to skip static generation and avoid revalidation issues
+export const dynamic = 'force-dynamic';
+// Remove revalidate setting since we're using dynamic rendering
+// export const revalidate = false;
+
 export async function generateStaticParams() {
   return await db.select({ category: categories.slug }).from(categories);
 }
 
 export default async function Page(props: {
-  params: Promise<{
+  params: {
     category: string;
-  }>;
+  };
 }) {
-  const { category } = await props.params;
+  const { category } = props.params;
   const urlDecoded = decodeURIComponent(category);
   const cat = await getCategory(urlDecoded);
   if (!cat) {

@@ -13,6 +13,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://turbomart.example.com"),
   title: {
     template: "%s | TurboMart",
     default: "TurboMart",
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
   description: "A high-performance, cost-free e-commerce platform with CockroachDB",
 };
 
-export const revalidate = 86400; // One day
+export const revalidate = false; // Disable revalidation during build
 
 export default async function RootLayout({
   children,

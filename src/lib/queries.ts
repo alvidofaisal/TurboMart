@@ -1,82 +1,135 @@
 import { cookies } from "next/headers";
 import { verifyToken } from "./session";
 import { unstable_cache } from "./unstable-cache";
-import { Client } from 'pg';
+import type { Client as PGClient } from 'pg';
 
-// Determine which connection string to use
-const connectionString = process.env.COCKROACH_DB_URL || process.env.POSTGRES_URL;
-if (!connectionString) {
-  throw new Error('Missing database connection string. Please provide either COCKROACH_DB_URL or POSTGRES_URL in your environment variables.');
-}
+// Detect if we're in a build environment
+const isBuild = process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build';
+console.log(`Environment: ${process.env.NODE_ENV}, Build phase: ${process.env.NEXT_PHASE}, isBuild: ${isBuild}`);
 
-// Debug log connection string format (removes credentials for safety)
-const debugConnectionString = connectionString.replace(/\/\/[^:]+:[^@]+@/, '//USER:PASSWORD@');
-console.log(`Database connection string format: ${debugConnectionString}`);
-
-// Create a database client using the native pg library which works better with CockroachDB
-const pgClient = new Client({
-  connectionString,
-  // Add these settings to improve reliability with CockroachDB
-  query_timeout: 10000, // 10 seconds
-  connectionTimeoutMillis: 5000, // 5 seconds
-  // Ensure native TLS which works better with CockroachDB
-  ssl: {
-    rejectUnauthorized: true,
-  }
-});
-
-// Connect immediately to verify the connection works
-pgClient.connect()
-  .then(() => console.log('Successfully connected to CockroachDB'))
-  .catch((err: Error) => console.error('Failed to connect to CockroachDB:', err.message));
-
-// Helper function to execute SQL queries with proper TypeScript types
-const sql = async (strings: TemplateStringsArray, ...values: any[]) => {
-  try {
-    // Convert the tagged template to a parameterized query
-    let query = '';
-    let paramIndex = 1;
-    let params = [];
-
-    // Build the query string with $1, $2, etc. placeholders
-    for (let i = 0; i < strings.length; i++) {
-      query += strings[i];
-      
-      if (i < values.length) {
-        query += `$${paramIndex}`;
-        paramIndex++;
-        params.push(values[i]);
-      }
+// Mock data for build time
+const mockData = {
+  users: [{ id: 1, name: 'Mock User', email: 'mock@example.com' }],
+  products: Array(10).fill(0).map((_, i) => ({
+    id: i,
+    name: `Mock Product ${i}`,
+    slug: `mock-product-${i}`,
+    subcategory_slug: 'mock-subcategory',
+    price: 99.99,
+    description: 'Mock description',
+    image_url: '/placeholder.svg'
+  })),
+  collections: [
+    {
+      id: 1,
+      name: 'Mock Collection',
+      slug: 'mock-collection',
+      categories: [
+        { id: 1, name: 'Mock Category', slug: 'mock-category', collection_id: 1, image_url: '/placeholder.svg' }
+      ]
     }
-    
-    // Log the query for debugging (with sensitive data removed)
-    const debugQuery = {
-      text: query,
-      params: params.map(v => typeof v === 'string' && v.length > 20 ? v.substring(0, 10) + '...' : v)
-    };
-    console.log('Executing query:', JSON.stringify(debugQuery));
-    
-    // Execute the query
-    const result = await pgClient.query(query, params);
-    return result;
-  } catch (error: any) {
-    console.error('Database query error:', error.message);
-    // Try to reconnect on connection errors
-    if (error.message.includes('connection') || error.code === 'ECONNRESET') {
-      console.log('Attempting to reconnect...');
-      try {
-        await pgClient.end();
-        await pgClient.connect();
-        console.log('Reconnection successful');
-      } catch (reconnectError: any) {
-        console.error('Failed to reconnect:', reconnectError.message);
-      }
-    }
-    throw error;
-  }
+  ],
+  categories: [
+    { id: 1, name: 'Mock Category', slug: 'mock-category', collection_id: 1, image_url: '/placeholder.svg' }
+  ],
+  subcollections: [
+    { id: 1, name: 'Mock Subcollection', slug: 'mock-subcollection', category_slug: 'mock-category' }
+  ],
+  subcategories: [
+    { id: 1, name: 'Mock Subcategory', slug: 'mock-subcategory', subcollection_id: 1 }
+  ],
+  product_count: { count: 1000000 }
 };
 
+// Only import pg and create client if not in build
+let pgClient: PGClient | undefined;
+let sql: ((strings: TemplateStringsArray, ...values: any[]) => Promise<any>) | undefined;
+
+if (!isBuild) {
+  // Lazy import Client to avoid issues during build
+  const { Client } = require('pg');
+  
+  // Determine which connection string to use
+  const connectionString = process.env.COCKROACH_DB_URL || process.env.POSTGRES_URL;
+  if (!connectionString) {
+    throw new Error('Missing database connection string. Please provide either COCKROACH_DB_URL or POSTGRES_URL in your environment variables.');
+  }
+
+  // Debug log connection string format (removes credentials for safety)
+  const debugConnectionString = connectionString.replace(/\/\/[^:]+:[^@]+@/, '//USER:PASSWORD@');
+  console.log(`Database connection string format: ${debugConnectionString}`);
+
+  // Create a database client using the native pg library which works better with CockroachDB
+  pgClient = new Client({
+    connectionString,
+    // Add these settings to improve reliability with CockroachDB
+    query_timeout: 10000, // 10 seconds
+    connectionTimeoutMillis: 5000, // 5 seconds
+    // Ensure native TLS which works better with CockroachDB
+    ssl: {
+      rejectUnauthorized: true,
+    }
+  });
+
+  // Connect immediately to verify the connection works
+  pgClient.connect()
+    .then(() => console.log('Successfully connected to CockroachDB'))
+    .catch((err: Error) => console.error('Failed to connect to CockroachDB:', err.message));
+
+  // Helper function to execute SQL queries with proper TypeScript types
+  sql = async (strings: TemplateStringsArray, ...values: any[]) => {
+    try {
+      // Convert the tagged template to a parameterized query
+      let query = '';
+      let paramIndex = 1;
+      let params = [];
+
+      // Build the query string with $1, $2, etc. placeholders
+      for (let i = 0; i < strings.length; i++) {
+        query += strings[i];
+        
+        if (i < values.length) {
+          query += `$${paramIndex}`;
+          paramIndex++;
+          params.push(values[i]);
+        }
+      }
+      
+      // Log the query for debugging (with sensitive data removed)
+      const debugQuery = {
+        text: query,
+        params: params.map(v => typeof v === 'string' && v.length > 20 ? v.substring(0, 10) + '...' : v)
+      };
+      console.log('Executing query:', JSON.stringify(debugQuery));
+      
+      // Execute the query
+      if (!pgClient) throw new Error('Database client not initialized');
+      const result = await pgClient.query(query, params);
+      return result;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Database query error:', errorMessage);
+      // Try to reconnect on connection errors
+      if (errorMessage.includes('connection') || (error instanceof Error && 'code' in error && error.code === 'ECONNRESET')) {
+        console.log('Attempting to reconnect...');
+        try {
+          if (!pgClient) throw new Error('Database client not initialized');
+          await pgClient.end();
+          await pgClient.connect();
+          console.log('Reconnection successful');
+        } catch (reconnectError: unknown) {
+          console.error('Failed to reconnect:', reconnectError instanceof Error ? reconnectError.message : String(reconnectError));
+        }
+      }
+      throw error;
+    }
+  };
+}
+
 export async function getUser() {
+  // During build time, return null for user
+  if (isBuild) return null;
+  
   const sessionCookie = (await cookies()).get("session");
   if (!sessionCookie || !sessionCookie.value) {
     return null;
@@ -95,6 +148,7 @@ export async function getUser() {
     return null;
   }
 
+  if (!sql) throw new Error('SQL query function not initialized');
   const { rows } = await sql`
     SELECT * FROM users WHERE id = ${sessionData.user.id} LIMIT 1
   `;
@@ -108,6 +162,13 @@ export async function getUser() {
 
 export const getProductsForSubcategory = unstable_cache(
   async (subcategorySlug: string) => {
+    // Return mock data during build time
+    if (isBuild) {
+      console.log('Using mock data for getProductsForSubcategory');
+      return mockData.products;
+    }
+    
+    if (!sql) throw new Error('SQL query function not initialized');
     const { rows } = await sql`
       SELECT * FROM products 
       WHERE subcategory_slug = ${subcategorySlug} 
@@ -123,6 +184,13 @@ export const getProductsForSubcategory = unstable_cache(
 
 export const getCollections = unstable_cache(
   async () => {
+    // Return mock data during build time
+    if (isBuild) {
+      console.log('Using mock data for getCollections');
+      return mockData.collections;
+    }
+    
+    if (!sql) throw new Error('SQL query function not initialized');
     const { rows: collections } = await sql`
       SELECT * FROM collections ORDER BY name ASC
     `;
@@ -150,6 +218,14 @@ export const getCollections = unstable_cache(
 
 export const getProductDetails = unstable_cache(
   async (productSlug: string) => {
+    // Return mock data during build time
+    if (isBuild) {
+      console.log('Using mock data for getProductDetails');
+      const mockProduct = mockData.products.find(p => p.slug === productSlug) || mockData.products[0];
+      return mockProduct;
+    }
+    
+    if (!sql) throw new Error('SQL query function not initialized');
     const { rows } = await sql`
       SELECT * FROM products WHERE slug = ${productSlug} LIMIT 1
     `;
@@ -164,6 +240,13 @@ export const getProductDetails = unstable_cache(
 
 export const getSubcategory = unstable_cache(
   async (subcategorySlug: string) => {
+    // Return mock data during build time
+    if (isBuild) {
+      console.log('Using mock data for getSubcategory');
+      return mockData.subcategories[0];
+    }
+    
+    if (!sql) throw new Error('SQL query function not initialized');
     const { rows } = await sql`
       SELECT * FROM subcategories WHERE slug = ${subcategorySlug} LIMIT 1
     `;
@@ -178,6 +261,19 @@ export const getSubcategory = unstable_cache(
 
 export const getCategory = unstable_cache(
   async (categorySlug: string) => {
+    // Return mock data during build time
+    if (isBuild) {
+      console.log('Using mock data for getCategory');
+      return {
+        ...mockData.categories[0],
+        subcollections: [{
+          ...mockData.subcollections[0],
+          subcategories: mockData.subcategories
+        }]
+      };
+    }
+    
+    if (!sql) throw new Error('SQL query function not initialized');
     const { rows } = await sql`
       SELECT * FROM categories WHERE slug = ${categorySlug} LIMIT 1
     `;
@@ -216,6 +312,13 @@ export const getCategory = unstable_cache(
 
 export const getCollectionDetails = unstable_cache(
   async (collectionSlug: string) => {
+    // Return mock data during build time
+    if (isBuild) {
+      console.log('Using mock data for getCollectionDetails');
+      return mockData.collections;
+    }
+    
+    if (!sql) throw new Error('SQL query function not initialized');
     const { rows: collections } = await sql`
       SELECT * FROM collections WHERE slug = ${collectionSlug} ORDER BY slug ASC
     `;
@@ -243,13 +346,20 @@ export const getCollectionDetails = unstable_cache(
 
 export const getProductCount = unstable_cache(
   async () => {
+    // Return mock data during build time
+    if (isBuild) {
+      console.log('Using mock data for getProductCount');
+      return mockData.product_count;
+    }
+    
+    if (!sql) throw new Error('SQL query function not initialized');
     const { rows } = await sql`
       SELECT COUNT(*) as count FROM products
     `;
     
     return rows[0];
   },
-  ["total-product-count"],
+  ["product-count"],
   {
     revalidate: 60 * 60 * 2, // two hours
   }

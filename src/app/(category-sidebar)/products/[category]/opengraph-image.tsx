@@ -1,6 +1,4 @@
 import { ImageResponse } from "next/og";
-import { notFound } from "next/navigation";
-import { getCategory } from "@/lib/queries";
 
 // Route segment config
 export const runtime = "edge";
@@ -15,28 +13,16 @@ export const size = {
 export const contentType = "image/png";
 
 // Image generation
-export default async function Image(props: {
-  params: Promise<{
+export default async function Image({ params }: {
+  params: {
     category: string;
-  }>;
+  };
 }) {
-  const { category: categoryParam } = await props.params;
-  const urlDecodedCategory = decodeURIComponent(categoryParam);
+  const urlDecodedCategory = decodeURIComponent(params.category);
+  const categoryName = urlDecodedCategory.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
-  const category = await getCategory(urlDecodedCategory);
+  const description = `Choose from our selection of ${categoryName}. In stock and ready to ship.`;
 
-  if (!category) {
-    return notFound();
-  }
-
-  const examples = category.subcollections
-    .slice(0, 2)
-    .map((s) => s.name)
-    .join(", ");
-
-  const description = `Choose from our selection of ${category.name}, including ${examples + (category.subcollections.length > 1 ? "," : "")} and more. In stock and ready to ship.`;
-
-  // TODO: Change design to add subcategory images that blur out
   return new ImageResponse(
     (
       <div
@@ -73,8 +59,8 @@ export default async function Image(props: {
                 width: "300px",
                 marginBottom: "30px",
               }}
-              src={category.image_url ?? "/placeholder.svg"}
-              alt={category.name}
+              src="/placeholder.svg"
+              alt={categoryName}
             />
           </div>
         </div>
@@ -86,7 +72,7 @@ export default async function Image(props: {
             marginBottom: "20px",
           }}
         >
-          {category.name}
+          {categoryName}
         </h1>
         <div
           style={{

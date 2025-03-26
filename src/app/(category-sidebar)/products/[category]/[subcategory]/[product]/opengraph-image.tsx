@@ -1,12 +1,10 @@
 import { ImageResponse } from "next/og";
-import { notFound } from "next/navigation";
-import { getProductDetails } from "@/lib/queries";
 
 // Route segment config
 export const runtime = "edge";
 
 // Image metadata
-export const alt = "About the product";
+export const alt = "Product information";
 export const size = {
   width: 1200,
   height: 630,
@@ -16,20 +14,22 @@ export const contentType = "image/png";
 
 // Image generation
 export default async function Image(props: {
-  params: Promise<{
+  params: {
     product: string;
     subcategory: string;
     category: string;
-  }>;
+  };
 }) {
-  console.log(props);
-  const { product } = await props.params;
+  const { product, subcategory, category } = props.params;
   const urlDecodedProduct = decodeURIComponent(product);
-  const productData = await getProductDetails(urlDecodedProduct);
+  const urlDecodedSubcategory = decodeURIComponent(subcategory);
+  const urlDecodedCategory = decodeURIComponent(category);
+  
+  // Create a static description instead of fetching from the database
+  const description = `Explore ${urlDecodedProduct} in our ${urlDecodedSubcategory} collection`;
+  const placeholder = "/placeholder.svg";
+  const price = "$99.99";
 
-  if (!productData) {
-    notFound();
-  }
   return new ImageResponse(
     (
       <div
@@ -66,8 +66,8 @@ export default async function Image(props: {
                 width: "300px",
                 marginBottom: "30px",
               }}
-              src={productData.image_url ?? "/placeholder.svg"}
-              alt={productData.name}
+              src={placeholder}
+              alt={urlDecodedProduct}
             />
           </div>
         </div>
@@ -79,7 +79,7 @@ export default async function Image(props: {
             marginBottom: "20px",
           }}
         >
-          {productData.name}
+          {urlDecodedProduct}
         </h1>
         <div
           style={{
@@ -91,7 +91,7 @@ export default async function Image(props: {
           <div
             style={{ textAlign: "center", display: "flex", fontSize: "24px" }}
           >
-            {productData.description}
+            {description}
           </div>
         </div>
         <div
@@ -102,7 +102,16 @@ export default async function Image(props: {
             marginTop: "10px",
           }}
         >
-          ${productData.price}
+          {price}
+        </div>
+        <div
+          style={{
+            marginTop: "40px",
+            fontSize: "32px",
+            color: "#666",
+          }}
+        >
+          Category: {urlDecodedCategory} / {urlDecodedSubcategory}
         </div>
       </div>
     ),

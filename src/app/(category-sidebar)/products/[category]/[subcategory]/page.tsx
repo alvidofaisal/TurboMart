@@ -8,6 +8,11 @@ import {
 } from "@/lib/queries";
 // import { db } from "@/db";
 
+// Set to dynamic to skip static generation and avoid revalidation issues
+export const dynamic = 'force-dynamic';
+// Remove revalidate setting since we're using dynamic rendering
+// export const revalidate = false;
+
 // export async function generateStaticParams() {
 //   const results = await db.query.subcategories.findMany({
 //     with: {
@@ -25,9 +30,9 @@ import {
 // }
 
 export async function generateMetadata(props: {
-  params: Promise<{ category: string; subcategory: string }>;
+  params: { category: string; subcategory: string };
 }): Promise<Metadata> {
-  const { subcategory: subcategoryParam } = await props.params;
+  const { subcategory: subcategoryParam } = props.params;
   const urlDecodedCategory = decodeURIComponent(subcategoryParam);
 
   const [subcategory, rows] = await Promise.all([
@@ -49,12 +54,12 @@ export async function generateMetadata(props: {
 }
 
 export default async function Page(props: {
-  params: Promise<{
+  params: {
     subcategory: string;
     category: string;
-  }>;
+  };
 }) {
-  const { subcategory, category } = await props.params;
+  const { subcategory, category } = props.params;
   // const urlDecodedCategory = decodeURIComponent(category);
   const urlDecodedSubcategory = decodeURIComponent(subcategory);
   const [products, countRes] = await Promise.all([

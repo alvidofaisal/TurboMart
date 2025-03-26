@@ -7,6 +7,11 @@ import { Metadata } from "next";
 import { getProductDetails, getProductsForSubcategory } from "@/lib/queries";
 // import { db } from "@/db";
 
+// Set to dynamic to skip static generation and avoid revalidation issues
+export const dynamic = 'force-dynamic';
+// Remove revalidate setting since we're using dynamic rendering
+// export const revalidate = false;
+
 // export async function generateStaticParams() {
 //   const results = await db.query.products.findMany({
 //     with: {
@@ -29,9 +34,9 @@ import { getProductDetails, getProductsForSubcategory } from "@/lib/queries";
 // }
 
 export async function generateMetadata(props: {
-  params: Promise<{ product: string; category: string; subcategory: string }>;
+  params: { product: string; category: string; subcategory: string };
 }): Promise<Metadata> {
-  const { product: productParam } = await props.params;
+  const { product: productParam } = props.params;
   const urlDecodedProduct = decodeURIComponent(productParam);
 
   const product = await getProductDetails(urlDecodedProduct);
@@ -46,13 +51,13 @@ export async function generateMetadata(props: {
 }
 
 export default async function Page(props: {
-  params: Promise<{
+  params: {
     product: string;
     subcategory: string;
     category: string;
-  }>;
+  };
 }) {
-  const { product, subcategory, category } = await props.params;
+  const { product, subcategory, category } = props.params;
   const urlDecodedProduct = decodeURIComponent(product);
   const urlDecodedSubcategory = decodeURIComponent(subcategory);
   const [productData, relatedUnshifted] = await Promise.all([
