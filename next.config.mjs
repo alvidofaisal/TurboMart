@@ -11,6 +11,15 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Add special handling for not-found routes
+  runtime: {
+    // This customizes runtime behavior for certain paths
+    path: {
+      "/_not-found": {
+        runtime: "edge", // Use edge runtime to prevent database access
+      },
+    },
+  },
   webpack: (config, { isServer }) => {
     // Only add these fallbacks for client-side bundle
     if (!isServer) {
