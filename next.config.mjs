@@ -11,6 +11,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Special configuration for handling problematic routes
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
   webpack: (config, { isServer }) => {
     // Only add these fallbacks for client-side bundle
     if (!isServer) {

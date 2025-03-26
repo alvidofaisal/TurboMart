@@ -2,44 +2,9 @@ import { cookies } from "next/headers";
 import { verifyToken } from "./session";
 import { unstable_cache } from "./unstable-cache";
 import type { Client as PGClient } from 'pg';
+import { isBuild, mockData, handleDbError } from "@/lib/db-fallback";
 
-// Detect if we're in a build environment
-const isBuild = process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build';
-console.log(`Environment: ${process.env.NODE_ENV}, Build phase: ${process.env.NEXT_PHASE}, isBuild: ${isBuild}`);
-
-// Mock data for build time
-const mockData = {
-  users: [{ id: 1, name: 'Mock User', email: 'mock@example.com' }],
-  products: Array(10).fill(0).map((_, i) => ({
-    id: i,
-    name: `Mock Product ${i}`,
-    slug: `mock-product-${i}`,
-    subcategory_slug: 'mock-subcategory',
-    price: 99.99,
-    description: 'Mock description',
-    image_url: '/placeholder.svg'
-  })),
-  collections: [
-    {
-      id: 1,
-      name: 'Mock Collection',
-      slug: 'mock-collection',
-      categories: [
-        { id: 1, name: 'Mock Category', slug: 'mock-category', collection_id: 1, image_url: '/placeholder.svg' }
-      ]
-    }
-  ],
-  categories: [
-    { id: 1, name: 'Mock Category', slug: 'mock-category', collection_id: 1, image_url: '/placeholder.svg' }
-  ],
-  subcollections: [
-    { id: 1, name: 'Mock Subcollection', slug: 'mock-subcollection', category_slug: 'mock-category' }
-  ],
-  subcategories: [
-    { id: 1, name: 'Mock Subcategory', slug: 'mock-subcategory', subcollection_id: 1 }
-  ],
-  product_count: { count: 1000000 }
-};
+console.log(`In queries.ts - Environment: ${process.env.NODE_ENV}, Build phase: ${process.env.NEXT_PHASE}, isBuild: ${isBuild}`);
 
 // Only import pg and create client if not in build
 let pgClient: PGClient | undefined;
@@ -144,7 +109,10 @@ if (isBuild) {
 
 export async function getUser() {
   // During build time, return null for user
-  if (isBuild) return null;
+  if (isBuild) {
+    console.log('Build-time getUser call, returning null');
+    return null;
+  }
   
   try {
     const sessionCookie = (await cookies()).get("session");
@@ -165,16 +133,24 @@ export async function getUser() {
       return null;
     }
 
-    if (!sql) throw new Error('SQL query function not initialized');
-    const { rows } = await sql`
-      SELECT * FROM users WHERE id = ${sessionData.user.id} LIMIT 1
-    `;
-
-    if (rows.length === 0) {
+    if (!sql) {
+      console.error('SQL query function not initialized');
       return null;
     }
-
-    return rows[0];
+    
+    try {
+      const { rows } = await sql`
+        SELECT * FROM users WHERE id = ${sessionData.user.id} LIMIT 1
+      `;
+  
+      if (rows.length === 0) {
+        return null;
+      }
+  
+      return rows[0];
+    } catch (dbError) {
+      return handleDbError(dbError);
+    }
   } catch (error) {
     console.error('Error in getUser:', error);
     return null;
