@@ -71,12 +71,14 @@ export default async function Page(props: {
     return notFound();
   }
 
-  const finalCount = countRes[0]?.count;
+  // Check if products array has items, regardless of the count from DB
+  const hasProducts = products.length > 0;
+  
   return (
     <div className="container mx-auto p-4">
-      {finalCount > 0 ? (
+      {hasProducts ? (
         <h1 className="mb-2 border-b-2 text-sm font-bold">
-          {finalCount} {finalCount === 1 ? "Product" : "Products"}
+          {products.length} {products.length === 1 ? "Product" : "Products"}
         </h1>
       ) : (
         <p>No products for this subcategory</p>

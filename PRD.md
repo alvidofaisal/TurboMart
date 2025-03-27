@@ -250,6 +250,7 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 - ✅ Enhanced search functionality to correctly handle newly imported products with reduced cache TTL (5 minutes)
 - ✅ Optimized full-text search query pattern in CockroachDB for better performance and result relevance
 - ✅ Implemented robust error handling for search functionality with fallback mechanisms
+- ✅ Fixed subcategory product display issue where "No products" message was shown even when products were available
 
 #### Phase 6: Image Pipeline
 - ✅ Created WebP conversion pipeline for product images
