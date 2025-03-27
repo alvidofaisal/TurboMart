@@ -399,82 +399,84 @@ export const getSubcategoryProductCount = unstable_cache(
 
 export const getSearchResults = unstable_cache(
   async (searchTerm: string) => {
-    let rows;
-
-    // do we really need to do this hybrid search pattern?
-    if (searchTerm.length <= 2) {
-      // If the search term is short (e.g., "W"), use ILIKE for prefix matching
-      const result = await sql`
-        SELECT 
-          p.*, 
-          sc.slug as subcategory_slug, 
-          sc.name as subcategory_name,
-          scol.id as subcollection_id, 
-          scol.name as subcollection_name,
-          c.slug as category_slug, 
-          c.name as category_name
-        FROM products p
-        INNER JOIN subcategories sc ON p.subcategory_slug = sc.slug
-        INNER JOIN subcollections scol ON sc.subcollection_id = scol.id
-        INNER JOIN categories c ON scol.category_slug = c.slug
-        WHERE p.name ILIKE ${searchTerm + '%'}
-        LIMIT 5
-      `;
-      
-      rows = result.rows;
-    } else {
-      // For longer search terms, use full-text search with tsquery
-      const formattedSearchTerm = searchTerm
-        .split(" ")
-        .filter((term) => term.trim() !== "") // Filter out empty terms
-        .map((term) => `${term}:*`)
-        .join(" & ");
-
-      const result = await sql`
-        SELECT 
-          p.*, 
-          sc.slug as subcategory_slug, 
-          sc.name as subcategory_name,
-          scol.id as subcollection_id, 
-          scol.name as subcollection_name,
-          c.slug as category_slug, 
-          c.name as category_name
-        FROM products p
-        INNER JOIN subcategories sc ON p.subcategory_slug = sc.slug
-        INNER JOIN subcollections scol ON sc.subcollection_id = scol.id
-        INNER JOIN categories c ON scol.category_slug = c.slug
-        WHERE to_tsvector('english', p.name) @@ to_tsquery('english', ${formattedSearchTerm})
-        LIMIT 5
-      `;
-      
-      rows = result.rows;
+    // Return mock data during build time
+    if (isBuild) {
+      console.log('Using mock data for getSearchResults');
+      return mockData.products.slice(0, 5).map(product => ({
+        products: product,
+        subcategories: { slug: 'mock-subcategory', name: 'Mock Subcategory' },
+        subcollections: { id: 1, name: 'Mock Subcollection' },
+        categories: { slug: 'mock-category', name: 'Mock Category' }
+      }));
     }
 
-    return rows.map((row: any) => ({
-      product: {
-        slug: row.slug,
-        name: row.name,
-        description: row.description,
-        price: row.price,
-        subcategory_slug: row.subcategory_slug,
-        image_url: row.image_url
-      },
-      subcategory: {
-        slug: row.subcategory_slug,
-        name: row.subcategory_name
-      },
-      subcollection: {
-        id: row.subcollection_id,
-        name: row.subcollection_name
-      },
-      category: {
-        slug: row.category_slug,
-        name: row.category_name
+    // Simplify the search query to avoid complex joins that might time out
+    try {
+      // Clean the search term
+      const cleanSearchTerm = searchTerm.replace(/[^\w\s]/gi, '').trim();
+      
+      if (!cleanSearchTerm) {
+        return [];
       }
-    }));
+      
+      // Use a simpler search with ILIKE for compatibility
+      console.log('Executing search query with term:', cleanSearchTerm);
+      const result = await sql`
+        SELECT 
+          p.slug, 
+          p.name, 
+          p.description, 
+          p.price, 
+          p.subcategory_slug,
+          p.image_url,
+          sc.name as subcategory_name,
+          c.slug as category_slug,
+          c.name as category_name
+        FROM 
+          products p
+        JOIN 
+          subcategories sc ON p.subcategory_slug = sc.slug
+        JOIN 
+          subcollections scol ON sc.subcollection_id = scol.id
+        JOIN 
+          categories c ON scol.category_slug = c.slug
+        WHERE 
+          p.name ILIKE ${'%' + cleanSearchTerm + '%'}
+        LIMIT 10
+      `;
+      
+      console.log(`Search for "${cleanSearchTerm}" found ${result.rows.length} results`);
+      
+      // Map the results to the expected structure
+      return result.rows.map(row => ({
+        products: {
+          slug: row.slug,
+          name: row.name,
+          description: row.description,
+          price: row.price,
+          subcategory_slug: row.subcategory_slug,
+          image_url: row.image_url
+        },
+        subcategories: {
+          slug: row.subcategory_slug,
+          name: row.subcategory_name
+        },
+        subcollections: {
+          id: row.subcollection_id || 0,
+          name: row.subcollection_name || 'Unknown'
+        },
+        categories: {
+          slug: row.category_slug,
+          name: row.category_name
+        }
+      }));
+    } catch (error) {
+      console.error('Search query error:', error);
+      return [];
+    }
   },
   ["search-results"],
-  { revalidate: 60 * 60 * 2 } // two hours
+  { revalidate: 60 * 5 } // 5 minutes instead of 2 hours
 );
 
 // Continue with the rest of the file...

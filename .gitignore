@@ -37,4 +37,40 @@ next-env.d.ts
 # Large files
 data/data.sql
 data/data.zip
-data/ordered-import/products.sql 
+data/ordered-import/products.sql
+
+# Large product SQL files
+data/ordered-import/products_filtered.sql
+data/resume-import/products_batch_*.sql
+
+# Node.js dependencies
+node_modules/
+.next/
+.pnpm-store/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+build/
+dist/
+out/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo 

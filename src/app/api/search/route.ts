@@ -8,19 +8,27 @@ export async function GET(request: NextRequest) {
     return Response.json([]);
   }
 
-  const results = await getSearchResults(searchTerm);
+  try {
+    console.log(`API Search request for term: "${searchTerm}"`);
+    const results = await getSearchResults(searchTerm);
+    console.log(`API found ${results.length} results`);
 
-  const searchResults: ProductSearchResult = results.map((item) => {
-    const href = `/products/${item.categories.slug}/${item.subcategories.slug}/${item.products.slug}`;
-    return {
-      ...item.products,
-      href,
-    };
-  });
-  const response = Response.json(searchResults);
-  // cache for 10 minutes
-  response.headers.set("Cache-Control", "public, max-age=600");
-  return response;
+    const searchResults: ProductSearchResult = results.map((item) => {
+      const href = `/products/${item.categories.slug}/${item.subcategories.slug}/${item.products.slug}`;
+      return {
+        ...item.products,
+        href,
+      };
+    });
+    
+    const response = Response.json(searchResults);
+    // cache for 5 minutes instead of 10
+    response.headers.set("Cache-Control", "public, max-age=300");
+    return response;
+  } catch (error) {
+    console.error('Search API error:', error);
+    return Response.json([]);
+  }
 }
 
 export type ProductSearchResult = {
