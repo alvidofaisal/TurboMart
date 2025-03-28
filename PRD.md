@@ -251,6 +251,12 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 - ✅ Optimized full-text search query pattern in CockroachDB for better performance and result relevance
 - ✅ Implemented robust error handling for search functionality with fallback mechanisms
 - ✅ Fixed subcategory product display issue where "No products" message was shown even when products were available
+- ✅ Implemented loading states to prevent flash of mock data during initial page load
+- ✅ Created client-side data guard system to ensure first-time visitors see proper loading indicators
+- ✅ Used React Suspense boundaries for better loading state management
+- ✅ Enhanced unstable_cache implementation to prevent mock data caching in production
+- ✅ Implemented reliable database connection helper with automatic retry logic
+- ✅ Fixed initial page load issues to ensure real data is always displayed in production
 
 #### Phase 6: Image Pipeline
 - ✅ Created WebP conversion pipeline for product images
@@ -311,6 +317,27 @@ TurboMart implements several optimizations to ensure smooth build processes:
 5. **Error Handling**: Robust error handling for database connections prevents build failures.
 
 These optimizations ensure successful builds even without database connections, allowing for deployment to edge environments.
+
+### Next.js 15 PPR Considerations
+
+TurboMart addresses specific challenges with Next.js 15's Partial Prerendering (PPR) feature:
+
+1. **Cookie Access in PPR**: Next.js 15's PPR has limitations when accessing cookies during server-side rendering, particularly for authentication. TurboMart implements:
+   - Safe cookie access patterns with proper fallbacks
+   - Client-side data guards to prevent flash of mock data
+   - Custom-built InitialDataGuardProvider to ensure consistent user experience
+
+2. **Build vs. Runtime Detection**: The application carefully distinguishes between:
+   - Build-time environment (using mock data)
+   - Development runtime (using local database)
+   - Production runtime (using real database credentials)
+
+3. **Database Handling**: Robust database connection management with:
+   - Automatic connection retries
+   - Graceful error handling
+   - Clear separation between mock and real data sources
+
+These optimizations ensure that users always see real data from the database in production, with appropriate loading states during data fetching.
 
 ## Next Steps
 

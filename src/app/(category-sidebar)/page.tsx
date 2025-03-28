@@ -1,5 +1,7 @@
 import { Link } from "@/components/ui/link";
 import { getCollections, getProductCount } from "@/lib/queries";
+import { InitialLoadingState } from "@/components/ui/loading-state";
+import { Suspense } from "react";
 
 import Image from "next/image";
 
@@ -15,11 +17,23 @@ interface Collection {
   categories: Category[];
 }
 
-export default async function Home() {
+// Separate component for home content to enable Suspense
+async function HomeContent() {
+  // Fetch real-time data from the database
   const [collections, productCount] = await Promise.all([
     getCollections(),
     getProductCount(),
   ]);
+  
+  // Handle empty data case
+  if (!collections.length) {
+    return (
+      <div className="w-full p-4">
+        <p className="text-lg text-gray-700">Loading product categories...</p>
+      </div>
+    );
+  }
+  
   let imageCount = 0;
 
   return (
@@ -55,5 +69,13 @@ export default async function Home() {
         </div>
       ))}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<InitialLoadingState />}>
+      <HomeContent />
+    </Suspense>
   );
 }

@@ -2,6 +2,8 @@ import { Link } from "@/components/ui/link";
 import { db } from "@/db";
 import { collections } from "@/db/schema";
 import { getCollectionDetails } from "@/lib/queries";
+import { InitialLoadingState } from "@/components/ui/loading-state";
+import { Suspense } from "react";
 
 import Image from "next/image";
 
@@ -9,14 +11,19 @@ export async function generateStaticParams() {
   return await db.select({ collection: collections.slug }).from(collections);
 }
 
-export default async function Home(props: {
-  params: Promise<{
-    collection: string;
-  }>;
-}) {
-  const collectionName = decodeURIComponent((await props.params).collection);
-
+// Separate component for collection content to enable Suspense
+async function CollectionContent({ collectionName }: { collectionName: string }) {
+  // Fetch real-time data from the database
   const collections = await getCollectionDetails(collectionName);
+  
+  if (collections.length === 0) {
+    return (
+      <div className="w-full p-4">
+        <p className="text-lg text-gray-700">No data found for this collection.</p>
+      </div>
+    );
+  }
+  
   let imageCount = 0;
 
   return (
@@ -49,5 +56,19 @@ export default async function Home(props: {
         </div>
       ))}
     </div>
+  );
+}
+
+export default async function CollectionPage(props: {
+  params: Promise<{
+    collection: string;
+  }>;
+}) {
+  const collectionName = decodeURIComponent((await props.params).collection);
+
+  return (
+    <Suspense fallback={<InitialLoadingState />}>
+      <CollectionContent collectionName={collectionName} />
+    </Suspense>
   );
 }
