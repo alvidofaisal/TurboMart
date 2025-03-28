@@ -18,6 +18,12 @@ interface Collection {
   categories: Category[];
 }
 
+// Add this helper function before the HeroBanner component
+function formatNumber(num: number): string {
+  // Simple regex to add commas as thousands separators
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
 // Hero banner component for the home page
 function HeroBanner({ productCount }: { productCount?: { count: number } }) {
   return (
@@ -38,7 +44,7 @@ function HeroBanner({ productCount }: { productCount?: { count: number } }) {
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="h-6 w-6 text-white" />
                   <span className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
-                    {productCount.count.toLocaleString()}
+                    {formatNumber(productCount.count)}
                   </span>
                 </div>
                 <h2 className="text-xl font-bold text-white md:text-2xl">Products At Your Fingertips</h2>

@@ -10,17 +10,10 @@ export function HeroBackground() {
     <>
       {!imageError ? (
         <div className="absolute inset-0 z-0">
-          <Image
-            src="/turbomart-1.png"
-            alt="TurboMart shopping experience - Speed visualized with dynamic red light streaks"
-            fill
-            style={{ objectFit: 'cover', objectPosition: 'center' }}
-            className="opacity-100"
-            priority
-            onError={() => {
-              console.error('Image failed to load');
-              setImageError(true);
-            }}
+          <img 
+            src="/images/turbomart-1.png" 
+            alt="TurboMart background" 
+            className="absolute inset-0 w-full h-full object-cover opacity-100" 
           />
         </div>
       ) : (
