@@ -4,17 +4,18 @@ import NextImage from "next/image";
 import { getImageProps } from "next/image";
 import { Product } from "@/db/schema";
 import { useEffect } from "react";
+import { ShoppingCart } from "lucide-react";
 
 export function getProductLinkImageProps(
   imageUrl: string,
   productName: string,
 ) {
   return getImageProps({
-    width: 48,
-    height: 48,
-    quality: 65,
+    width: 80,
+    height: 80,
+    quality: 75,
     src: imageUrl,
-    alt: `A small picture of ${productName}`,
+    alt: `${productName} product image`,
   });
 }
 
@@ -30,12 +31,13 @@ export function ProductLink(props: {
   // prefetch the main image for the product page, if this is too heavy
   // we could only prefetch the first few cards, then prefetch on hover
   const prefetchProps = getImageProps({
-    height: 256,
+    height: 300,
     quality: 80,
-    width: 256,
-    src: imageUrl ?? "/placeholder.svg?height=64&width=64",
-    alt: `A small picture of ${product.name}`,
+    width: 300,
+    src: imageUrl ?? "/placeholder.svg?height=300&width=300",
+    alt: `${product.name} product image`,
   });
+  
   useEffect(() => {
     try {
       const iprops = prefetchProps.props;
@@ -52,30 +54,56 @@ export function ProductLink(props: {
       console.error("failed to preload", prefetchProps.props.src, e);
     }
   }, [prefetchProps]);
+  
   return (
     <Link
       prefetch={true}
-      className="group flex h-[130px] w-full flex-row border px-4 py-2 hover:bg-gray-100 sm:w-[250px]"
+      className="group flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md"
       href={`/products/${category_slug}/${subcategory_slug}/${product.slug}`}
     >
-      <div className="py-2">
-        <NextImage
-          loading={props.loading}
-          decoding="sync"
-          src={imageUrl ?? "/placeholder.svg?height=48&width=48"}
-          alt={`A small picture of ${product.name}`}
-          width={48}
-          height={48}
-          quality={65}
-          className="h-auto w-12 flex-shrink-0 object-cover"
-        />
-      </div>
-      <div className="px-2" />
-      <div className="h-26 flex flex-grow flex-col items-start py-2">
-        <div className="text-sm font-medium text-gray-700 group-hover:underline">
-          {product.name}
+      <div className="relative bg-gray-50 p-4">
+        {/* Optional "New" badge */}
+        {Math.random() > 0.8 && (
+          <span className="absolute left-2 top-2 rounded-full bg-primary-600 px-2 py-1 text-xs font-semibold uppercase text-white">
+            New
+          </span>
+        )}
+        
+        <div className="relative mx-auto aspect-square h-40 w-40 overflow-hidden">
+          <NextImage
+            loading={props.loading}
+            decoding="sync"
+            src={imageUrl ?? "/placeholder.svg?height=160&width=160"}
+            alt={`${product.name} product image`}
+            fill
+            style={{ objectFit: 'contain' }}
+            className="transition-transform duration-200 group-hover:scale-105"
+            sizes="(max-width: 768px) 160px, 200px"
+            quality={75}
+          />
         </div>
-        <p className="overflow-hidden text-xs">{product.description}</p>
+      </div>
+      
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="mb-1 text-sm font-medium text-gray-800 group-hover:text-primary-700 md:text-base">
+          {product.name}
+        </h3>
+        
+        <p className="mb-2 line-clamp-2 flex-grow text-xs text-gray-600">
+          {product.description}
+        </p>
+        
+        <div className="mt-auto flex items-center justify-between">
+          <span className="font-medium text-primary-700">
+            ${(Math.random() * 100 + 9.99).toFixed(2)}
+          </span>
+          <button 
+            className="rounded-full bg-primary-50 p-2 text-primary-700 transition-colors hover:bg-primary-100"
+            aria-label={`Add ${product.name} to cart`}
+          >
+            <ShoppingCart size={16} />
+          </button>
+        </div>
       </div>
     </Link>
   );

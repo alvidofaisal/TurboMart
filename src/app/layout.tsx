@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SearchDropdownComponent } from "@/components/search-dropdown";
-import { MenuIcon } from "lucide-react";
+import { MenuIcon, ShoppingCart, User } from "lucide-react";
 import React, { Suspense } from "react";
 import { Cart } from "@/components/cart";
 import { AuthServer } from "./auth.server";
@@ -36,93 +36,123 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <InitialDataGuardProvider>
-          <div>
-            <header className="fixed top-0 z-10 flex h-[90px] w-[100vw] flex-grow items-center justify-between border-b-2 border-accent2 bg-background p-2 pb-[4px] pt-2 sm:h-[70px] sm:flex-row sm:gap-4 sm:p-4 sm:pb-[4px] sm:pt-0">
-              <div className="flex flex-grow flex-col">
-                <div className="absolute right-2 top-2 flex justify-end pt-2 font-sans text-sm hover:underline sm:relative sm:right-0 sm:top-0">
-                  <Suspense
-                    fallback={
-                      <button className="flex flex-row items-center gap-1">
-                        <div className="h-[20px]" />
-                        <svg viewBox="0 0 10 6" className="h-[6px] w-[10px]">
-                          <polygon points="0,0 5,6 10,0"></polygon>
-                        </svg>
-                      </button>
-                    }
-                  >
-                    <AuthServer />
-                  </Suspense>
-                </div>
-                <div className="flex w-full flex-col items-start justify-center sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-                  <Link
-                    prefetch={true}
-                    href="/"
-                    className="text-4xl font-bold text-accent1"
-                  >
-                    TurboMart
-                  </Link>
-                  <div className="items flex w-full flex-row items-center justify-between gap-4">
-                    <div className="mx-0 flex-grow sm:mx-auto sm:flex-grow-0">
-                      <SearchDropdownComponent />
+          <div className="flex min-h-screen flex-col">
+            <header className="sticky top-0 z-10 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900 text-white shadow-lg">
+              {/* Top bar with logo, search, and user controls */}
+              <div className="container mx-auto px-4">
+                <div className="flex flex-col py-3 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Left section: Logo */}
+                  <div className="flex items-center justify-between">
+                    <Link
+                      prefetch={true}
+                      href="/"
+                      className="relative text-2xl font-bold text-white sm:text-3xl"
+                    >
+                      <span className="relative z-10">TurboMart</span>
+                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-red-500/60 via-orange-300/80 to-transparent"></span>
+                    </Link>
+                    <div className="flex items-center gap-2 sm:hidden">
+                      <Link href="/order" aria-label="Cart" className="p-1">
+                        <ShoppingCart size={22} className="text-white" />
+                      </Link>
+                      <Link href="/order-history" aria-label="Order History" className="p-1 sm:hidden">
+                        <MenuIcon size={22} className="text-white" />
+                      </Link>
                     </div>
-                    <div className="flex flex-row justify-between space-x-4">
-                      <div className="relative">
-                        <Link
-                          prefetch={true}
-                          href="/order"
-                          className="text-lg text-accent1 hover:underline"
-                        >
-                          ORDER
-                        </Link>
-                        <Suspense>
-                          <Cart />
-                        </Suspense>
-                      </div>
+                  </div>
+
+                  {/* Middle section: Search (full width on mobile) */}
+                  <div className="my-3 w-full sm:my-0 sm:max-w-md">
+                    <SearchDropdownComponent />
+                  </div>
+
+                  {/* Right section: User controls */}
+                  <div className="hidden items-center gap-6 sm:flex">
+                    <div className="relative">
                       <Link
                         prefetch={true}
-                        href="/order-history"
-                        className="hidden text-lg text-accent1 hover:underline md:block"
+                        href="/order"
+                        className="flex items-center gap-1 text-white/90 transition-colors hover:text-accent-300"
                       >
-                        ORDER HISTORY
+                        <ShoppingCart size={20} className="text-orange-200" />
+                        <span>Cart</span>
                       </Link>
-                      <Link
-                        prefetch={true}
-                        href="/order-history"
-                        aria-label="Order History"
-                        className="block text-lg text-accent1 hover:underline md:hidden"
+                      <Suspense>
+                        <Cart />
+                      </Suspense>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Suspense
+                        fallback={
+                          <button className="flex flex-row items-center gap-1 text-white/90 transition-colors hover:text-accent-300">
+                            <User size={20} className="text-orange-200" />
+                            <span>Account</span>
+                          </button>
+                        }
                       >
-                        <MenuIcon />
-                      </Link>
+                        <AuthServer />
+                      </Suspense>
                     </div>
                   </div>
                 </div>
               </div>
             </header>
-            <div className="pt-[85px] sm:pt-[70px]">{children}</div>
+            
+            <main className="flex-grow pb-12">{children}</main>
+
+            <footer className="bg-primary-900 py-6 text-white">
+              <div className="container mx-auto px-4">
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
+                  <div>
+                    <h3 className="mb-3 text-lg font-semibold">Customer Service</h3>
+                    <ul className="space-y-2 text-sm">
+                      <li><Link href="/" className="hover:text-accent-200">Home</Link></li>
+                      <li><Link href="/order" className="hover:text-accent-200">Cart</Link></li>
+                      <li><Link href="/order-history" className="hover:text-accent-200">Order History</Link></li>
+                      <li><Link href="/offline" className="hover:text-accent-200">Offline Mode</Link></li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="mb-3 text-lg font-semibold">About TurboMart</h3>
+                    <ul className="space-y-2 text-sm">
+                      <li><Link href="/" className="hover:text-accent-200">Home</Link></li>
+                      <li><Link href="/products" className="hover:text-accent-200">Products</Link></li>
+                      <li><Link href="/scan" className="hover:text-accent-200">Scan</Link></li>
+                      <li><Link href="/order" className="hover:text-accent-200">Cart</Link></li>
+                    </ul>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <h3 className="mb-3 text-lg font-semibold">Stay Connected</h3>
+                    <p className="mb-3 text-sm">Subscribe for updates on new products and exclusive offers.</p>
+                    <div className="flex">
+                      <input
+                        type="email"
+                        placeholder="Your email"
+                        className="w-full rounded-l border-gray-300 px-3 py-2 text-black focus:outline-none"
+                      />
+                      <button className="rounded-r bg-primary-600 px-4 py-2 font-medium text-white hover:bg-primary-500">
+                        Subscribe
+                      </button>
+                    </div>
+                    <div className="mt-4 text-xs">
+                      <Link
+                        href="https://github.com/yourusername/TurboMart"
+                        className="hover:text-accent-200"
+                        target="_blank"
+                      >
+                        View Source Code
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-8 border-t border-primary-800 pt-6 text-center text-xs">
+                  <p>© {new Date().getFullYear()} TurboMart. All rights reserved.</p>
+                  <p className="mt-1">A high-performance, cost-free e-commerce platform.</p>
+                </div>
+              </div>
+            </footer>
           </div>
-          <footer className="fixed bottom-0 flex h-12 w-screen flex-col items-center justify-between space-y-2 border-t border-gray-400 bg-background px-4 font-sans text-[11px] sm:h-6 sm:flex-row sm:space-y-0">
-            <div className="flex flex-wrap justify-center space-x-2 pt-2 sm:justify-start">
-              <span className="hover:bg-accent2 hover:underline">Home</span>
-              <span>|</span>
-              <span className="hover:bg-accent2 hover:underline">FAQ</span>
-              <span>|</span>
-              <span className="hover:bg-accent2 hover:underline">Returns</span>
-              <span>|</span>
-              <span className="hover:bg-accent2 hover:underline">Careers</span>
-              <span>|</span>
-              <span className="hover:bg-accent2 hover:underline">Contact</span>
-            </div>
-            <div className="text-center sm:text-right">
-              By using this website, you agree to check out the{" "}
-              <Link
-                href="https://github.com/yourusername/TurboMart"
-                className="font-bold text-accent1 hover:underline"
-                target="_blank"
-              >
-                Source Code
-              </Link>
-            </div>
-          </footer>
+
           <Suspense fallback={null}>
             <Toaster closeButton />
             <WelcomeToast />
