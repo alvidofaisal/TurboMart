@@ -1,28 +1,30 @@
 # TurboMart
 
-A high-performance, cost-free e-commerce platform built by refactoring the Next.js-based "NextFaster" template. It aims to deliver a seamless shopping experience with zero operational costs, relying entirely on free-tier services.
+A high-performance, cost-free e-commerce platform built by refactoring the Next.js-based "NextFaster" template. It aims to deliver a seamless shopping experience with **minimal operational costs**, relying primarily on free-tier services (**Vercel, CockroachDB trial, Supabase, Cloudflare KV & R2**). *(Note: Costs may be incurred if free tier limits are exceeded or significant data transfer occurs between Vercel and Cloudflare.)*
 
 ## Key Features
 
-- **Zero Cost Architecture**: Built to operate entirely on free-tier services with monthly CockroachDB account cycling
+- **Low Cost Architecture**: Built to operate primarily on free-tier services with monthly CockroachDB account cycling
 - **High Performance**: Targeting TTFB under 100ms for cached content and page loads below 1.5 seconds
 - **CockroachDB Compatible**: Uses native PostgreSQL clients (postgres-js) for better compatibility with CockroachDB
-- **Cloudflare Integration**: Uses Cloudflare Pages for hosting, R2 for storage, and KV for caching
+- **Vercel Deployment**: Hosted on Vercel for streamlined Next.js deployment and global edge network.
+- **Cloudflare Integration**: Uses **Cloudflare R2** for storage and **Cloudflare KV** for caching/rate-limiting (accessed remotely via API from Vercel).
 - **Modern Tech Stack**: Next.js 15, React 19, TypeScript, and Tailwind CSS
 
 ## Architecture Highlights
 
+- Hosted on [Vercel](https://vercel.com)
 - Uses [Next.js 15](https://nextjs.org/) with [Partial Prerendering](https://vercel.com/blog/partial-prerendering-with-next-js-creating-a-new-default-rendering-model)
-- Server Actions for all data mutations
+- Server Actions for all data mutations running on Vercel Functions
 - Direct SQL queries via postgres-js client rather than Drizzle ORM for CockroachDB compatibility
-- Images stored using [Cloudflare R2](https://developers.cloudflare.com/r2/) instead of Vercel Blob
-- Rate limiting via Cloudflare KV with @upstash/ratelimit
+- Images stored using [Cloudflare R2](https://developers.cloudflare.com/r2/) (accessed remotely)
+- Rate limiting via [Cloudflare KV](https://developers.cloudflare.com/kv/) (accessed remotely) with @upstash/ratelimit
 
 ## Local Development
 
 - Clone the repository and navigate to the project directory
 - Run `pnpm install` to install dependencies
-- Copy `.env.local.example` to `.env.local` and fill in your database credentials
+- Copy `.env.local.example` to `.env.local` and fill in your database (CockroachDB), Supabase, Cloudflare KV, and Cloudflare R2 credentials.
 - Run `pnpm dev` to start the development server
 
 For CockroachDB:
@@ -38,9 +40,12 @@ This project is optimized for CockroachDB instead of a traditional PostgreSQL da
 3. Data import scripts that respect foreign key constraints and relationship dependencies
 4. Support for generating a smaller demo dataset (5,000 products) for development and testing
 
+*Note: The README previously mentioned using `@vercel/postgres`. This has been corrected in the code to use `postgres-js` for direct CockroachDB compatibility.*
+
 ## Performance Optimizations
 
-- Aggressive caching with Cloudflare KV
+- Aggressive caching with **Cloudflare KV (accessed remotely from Vercel Functions)**
+- Vercel Edge Network caching for static assets
 - Partial Prerendering (PPR) for hybrid static/dynamic content
 - Client-side optimizations including service workers for offline support
 - Optimized database queries with proper connection pooling and error handling
@@ -54,19 +59,20 @@ The data directory includes several scripts for importing products:
 
 ## Origin
 
-TurboMart is a refactored version of the [NextFaster](https://github.com/ethanniser/NextFaster) e-commerce template, optimized for zero operational costs.
+TurboMart is a refactored version of the [NextFaster](https://github.com/ethanniser/NextFaster) e-commerce template, optimized for **minimal operational costs using Vercel and free tiers of other services**.
 
 ### Design notes
 
-**Check out the detailed [twitter thread](https://x.com/ethanniser/status/1848442738204643330)**
+**Check out the detailed [twitter thread](https://x.com/ethanniser/status/1848442738204643330)** *(Note: This thread likely describes the original NextFaster architecture, not the current TurboMart setup)*
 
+- Deployed on **Vercel**
 - Uses [Next.js 15](https://nextjs.org/)
   - All mutations are done via [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
 - [Partial Prerendering](https://vercel.com/blog/partial-prerendering-with-next-js-creating-a-new-default-rendering-model) is used to precompute the shells of pages
   - When deployed, these are served statically from the edge
   - Dynamic data (such as cart information) is then streamed in
-- Uses direct SQL queries via [@vercel/postgres](https://vercel.com/docs/storage/vercel-postgres) client rather than Drizzle ORM for CockroachDB compatibility
-- Images stored using [Cloudflare R2](https://developers.cloudflare.com/r2/) instead of Vercel Blob
+- Uses direct SQL queries via **`postgres-js`** client rather than Drizzle ORM for CockroachDB compatibility *(Corrected from previous mention of `@vercel/postgres`)*
+- Images stored using **Cloudflare R2** (accessed remotely)
 - Used [v0](https://v0.dev) to generate all initial UIs, check out some of the threads we were particularly impressed by:
   - [v0 makes pretty impressive search dropdown without a library](https://v0.dev/chat/lFfc68X3fir?b=b_1o4tkiC9EEm&p=0)
   - [recreating 'order' page](https://v0.dev/chat/RTBa8dXhx03?b=b_4RguNNUEhLh)
@@ -79,15 +85,23 @@ TurboMart is a refactored version of the [NextFaster](https://github.com/ethanni
 
 ### Deployment
 
-- Create a new CockroachDB Serverless cluster and set the connection URL in your .env.local file
-- Run `pnpm db:migrate` to apply the schema to your CockroachDB instance
-- Set up Cloudflare R2 for image storage
+- **Deploy to Vercel**: Connect your Git repository (GitHub, GitLab, Bitbucket) to Vercel for automatic deployments.
+- Configure **Environment Variables** in Vercel for:
+  - CockroachDB connection string
+  - Supabase URL and keys
+  - Cloudflare Account ID
+  - Cloudflare API Token (with necessary KV/R2 permissions)
+  - Cloudflare KV Namespace ID
+  - Cloudflare R2 Bucket Name, Access Key ID, and Secret Access Key
+- Create a new CockroachDB Serverless cluster and set the connection URL environment variable.
+- Run `pnpm db:migrate` locally or via a build step script if necessary to apply the schema to your CockroachDB instance.
+- Set up Cloudflare R2 bucket and KV namespace and configure their details in Vercel environment variables.
 
 ### Local dev
 
 - Clone the repository and navigate to the project directory
 - Run `pnpm install` to install dependencies
-- Copy `.env.example` to `.env.local` and fill in your database credentials
+- Copy `.env.local.example` to `.env.local` and fill in your **CockroachDB, Supabase, Cloudflare KV, and Cloudflare R2 credentials**.
 - Run `pnpm dev` to start the development server
 - The data directory includes several scripts for importing products:
   - `scripts/demo-import.js`: Creates a smaller set of 5,000 demo products for development
@@ -100,18 +114,22 @@ TurboMart is a refactored version of the [NextFaster](https://github.com/ethanni
 
 This project uses CockroachDB instead of a traditional PostgreSQL database. To ensure compatibility, we've made the following changes:
 
-1. Direct SQL queries via [@vercel/postgres](https://vercel.com/docs/storage/vercel-postgres) client instead of Drizzle ORM to avoid version conflicts
+1. Direct SQL queries via **`postgres-js`** client instead of Drizzle ORM to avoid version conflicts *(Corrected from previous mention of `@vercel/postgres`)*
 2. Custom migration script (`pnpm db:migrate`) instead of Drizzle's standard `db:push` to work around limitations in PostgreSQL compatibility
 3. Data import scripts that respect foreign key constraints and relationship dependencies
 4. Support for generating a smaller demo dataset (5,000 products) for development and testing
 
 ### Performance
 
+*(Note: The linked PageSpeed report refers to the original NextFaster deployment, not the current TurboMart setup. Performance may differ based on the Vercel/Cloudflare integration.)*
+
 [PageSpeed Report](https://pagespeed.web.dev/analysis/https-next-faster-vercel-app/7iywdkce2k?form_factor=desktop)
 
 <img width="822" alt="SCR-20241027-dmsb" src="https://github.com/user-attachments/assets/810bc4c7-2e01-422d-9c3d-45daf5fb13ce">
 
 ### Costs
+
+*(Note: The following cost breakdown is for the **original NextFaster template hosted solely on Vercel** and does **not** reflect the current TurboMart architecture using CockroachDB, Supabase, Cloudflare R2/KV alongside Vercel. The goal of TurboMart is to minimize these costs by leveraging free tiers, but actual costs depend on usage exceeding free limits on Vercel and potentially Cloudflare.)*
 
 This project is hosted on Vercel, and uses many of the features of the Vercel platform.
 

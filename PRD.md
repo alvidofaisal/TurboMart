@@ -2,14 +2,14 @@
 
 ## Introduction
 
-TurboMart is a high-performance, cost-free e-commerce platform built by refactoring the Next.js-based "NextFaster" template. It aims to deliver a seamless shopping experience comparable to platforms like Shopee and Alibaba, relying entirely on free-tier services. Per the requirement, TurboMart will continue using one CockroachDB account per month, cycling to a new account monthly to leverage CockroachDB Serverless's $400 one-month trial credit (as of March 25, 2025), keeping operational costs at zero. TurboMart use Cloudflare Pages for hosting and Supabase for additional database functionality, while retaining CockroachDB as the primary database.
+TurboMart is a high-performance, cost-free e-commerce platform built by refactoring the Next.js-based "NextFaster" template. It aims to deliver a seamless shopping experience comparable to platforms like Shopee and Alibaba, relying primarily on free-tier services. Per the requirement, TurboMart will continue using one CockroachDB account per month, cycling to a new account monthly to leverage CockroachDB Serverless's $400 one-month trial credit (as of March 25, 2025), aiming to keep primary database costs at zero. TurboMart uses **Vercel for hosting** and Supabase for additional database functionality, while retaining CockroachDB as the primary database. It utilizes **Cloudflare R2** for image storage and **Cloudflare KV** for caching, accessed remotely from Vercel Functions.
 
 ## Goals and Objectives
 
 - Achieve Time to First Byte (TTFB) under 100ms for cached content.
 - Target full page load times below 1.5 seconds.
-- Support up to 2 million page views per month within the $400 trial credit for CockroachDB and free tiers of Cloudflare and Supabase.
-- Maintain zero operational cost by cycling CockroachDB accounts monthly.
+- Support up to 2 million page views per month within the $400 trial credit for CockroachDB and the **free tiers of Vercel, Cloudflare (for KV/R2 usage), and Supabase.** *(Note: Exceeding Vercel's free tier limits or incurring significant data transfer costs between Vercel and Cloudflare may result in operational costs).*
+- Maintain zero operational cost for the primary database by cycling CockroachDB accounts monthly.
 - Optimize performance with creative, cost-effective techniques.
 
 ## Target Audience
@@ -38,7 +38,7 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 
 ## Improvements Over NextFaster
 
-- Advanced caching with Cloudflare's free tier.
+- Advanced caching with **Cloudflare KV (accessed remotely)**.
 - Static Site Generation (SSG) for high-traffic pages.
 - Client-side optimizations to minimize server work.
 - Efficient database usage to stay within CockroachDB's $400 trial credit and Supabase's free tier limits.
@@ -47,10 +47,9 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 
 ### Infrastructure and Hosting
 
-- **Cloudflare Pages**: Hosts pre-rendered static content (e.g., product pages) with automatic caching and global CDN delivery (free tier: 100,000 requests/day, 1 build/minute).
-- **Cloudflare Workers**: Handles dynamic API routes (e.g., cart updates, search) with edge computing (free tier: 100,000 requests/day).
+- **Vercel**: Hosts the Next.js application, leveraging its global Edge Network for static assets and Serverless/Edge Functions for dynamic API routes and server-side rendering. (Free tier includes generous limits, but usage beyond the free tier incurs costs).
 
-**Impact**: Eliminates VM management, leverages Cloudflare's global network for speed, and reduces server-side compute needs.
+**Impact**: Leverages **Vercel's** managed infrastructure and global network for speed, reduces server-side compute needs via serverless functions, and simplifies deployment workflows. Requires monitoring Vercel usage limits.
 
 ### Database and Storage
 
@@ -59,27 +58,27 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 **New**:
 - **CockroachDB Serverless**: Retains the single-account-per-month cycling strategy for primary transactional data (e.g., orders, products).
 - **Supabase**: Adds PostgreSQL for user management and lightweight relational data (free tier: 500MB storage, 2GB bandwidth/month).
-- **Cloudflare R2**: Stores images and static assets (free tier: 10GB storage, 1 million requests/month).
+- **Cloudflare R2**: Stores images and static assets (free tier: 10GB storage, 1 million Class B requests/month, free egress). Accessed remotely via API calls from Vercel Functions.
 
-**Impact**: CockroachDB handles high-scale transactional data, Supabase simplifies user authentication and secondary data, and R2 replaces VM disk storage.
+**Impact**: CockroachDB handles high-scale transactional data, Supabase simplifies user authentication and secondary data, and R2 provides low-cost object storage accessible from Vercel.
 
 ### Caching Strategies
 
 **Previous**: Cloudflare Free Tier for static assets (max-age=31536000), HTML (max-age=3600), APIs (max-age=60), and in-memory caching on VMs (100MB/VM).
 
 **New**:
-- **Cloudflare Pages**: Automatically caches static content.
-- **Cloudflare Workers Cache API**: Caches dynamic API responses (e.g., database queries).
+- **Vercel Edge Network Cache**: Automatically caches static assets deployed with the Next.js application. Configuration options available for server-rendered content.
+- **Cloudflare KV**: Remotely accessed via API from Vercel Functions for caching dynamic API responses (e.g., database queries). Subject to KV read/write costs and potential Vercel data transfer costs. (Free tier: 100k reads/day, 1k writes/day).
 - **Supabase**: Leverages built-in caching for user data queries.
 
-**Impact**: Eliminates VM-based in-memory caching, reduces database load, and maintains high cache hit rates.
+**Impact**: Utilizes Vercel's built-in caching and leverages Cloudflare KV remotely for dynamic data caching, reducing database load while needing monitoring for potential cross-service costs.
 
 ### Image Optimization
 
 **Previous**: Images stored on VM disks, served via NGINX, cached by Cloudflare, pre-processed to WebP with sharp.
 
-**New**: 
-- Images stored in Cloudflare R2, served directly or via Cloudflare Pages.
+**New**:
+- Images stored in **Cloudflare R2**, served directly (potentially via Cloudflare CDN) or accessed via Vercel Functions. URLs need to be managed appropriately.
 - Pre-processing to WebP remains using sharp (client-side or build-time).
 
 **Impact**: R2 provides scalable storage with built-in caching, maintaining performance without VMs.
@@ -88,31 +87,31 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 
 **Previous**: Service workers, async loading with useSWR, WebAssembly for tasks like price calculations.
 
-**New**: Unchanged, but service workers now cache assets from Cloudflare Pages and R2.
+**New**: Unchanged, but service workers now cache assets served by **Vercel** and potentially images from **R2 (via CDN or direct links)**.
 
-**Impact**: Frontend optimizations remain intact, seamlessly integrating with the new hosting setup.
+**Impact**: Frontend optimizations remain intact, integrating with the Vercel hosting setup.
 
 ### Server-Side Optimizations
 
 **Previous**: NGINX reverse proxy, HTTP/3, Node.js clustering on VMs.
 
-**New**: 
-- Cloudflare Workers handle server-side logic with built-in HTTP/3 and automatic scaling.
+**New**:
+- **Vercel Serverless/Edge Functions** handle server-side logic (API routes, Server Actions, SSR) with automatic scaling and built-in optimizations.
 - Supabase provides serverless API endpoints for user-related operations.
 
-**Impact**: Simplifies architecture, eliminates VM overhead, and leverages edge computing.
+**Impact**: Simplifies architecture, eliminates VM overhead, and leverages **Vercel's serverless platform**.
 
 ### Monitoring and Analytics
 
 **Previous**: Grafana + Telegraf for VM and database monitoring, Plausible Analytics for users.
 
-**New**: 
-- **Cloudflare Analytics**: Monitors traffic and performance.
+**New**:
+- **Vercel Analytics**: Monitors traffic, performance, and function usage within Vercel.
 - **CockroachDB Monitoring**: Tracks database health and RUs.
 - **Supabase Dashboard**: Monitors usage and performance.
 - **Plausible Analytics**: Retained for lightweight user analytics.
 
-**Impact**: Consolidates monitoring with provider-native tools, maintaining visibility without VMs.
+**Impact**: Uses a mix of provider-native tools (**Vercel**, CockroachDB, Supabase), maintaining visibility. Cloudflare monitoring might be needed separately for KV/R2 usage.
 
 ### CockroachDB Single-Account Strategy
 
@@ -125,11 +124,11 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 1. Backup data at the end of each 30-day trial using CockroachDB's free backup tools.
 2. Create a new account with a fresh email and IP.
 3. Restore the backup to the new cluster.
-4. Update Workers' connection settings to point to the new cluster (via environment variables).
+4. Update **Vercel environment variables** to point to the new cluster (requires redeployment or using Vercel's API).
 
-**Optimization**: Minimize RUs with aggressive caching and batched writes to stay under 2 billion RUs/month.
+**Optimization**: Minimize RUs with aggressive caching (via remote Cloudflare KV) and batched writes to stay under 2 billion RUs/month.
 
-**Impact**: Ensures zero database costs, fully integrated with Cloudflare Workers for connectivity.
+**Impact**: Ensures zero database costs, accessible from **Vercel Functions** via connection settings stored in environment variables.
 
 ## Rebellious Optimizations
 
@@ -145,27 +144,29 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 
 ## Implementation Plan
 
-### Phase 1: Infrastructure Setup (Week 1) 
-- Set up Cloudflare Pages, Workers, and R2 instead of provisioning VMs.
+### Phase 1: Infrastructure Setup (Week 1)
+- Set up **Vercel project** and link to Git repository.
+- Configure **Cloudflare R2** bucket and **Cloudflare KV** namespace.
 - Register the first CockroachDB account and configure Supabase.
+- Set up necessary environment variables in Vercel for all services (CockroachDB, Supabase, Cloudflare R2/KV).
 
-### Phase 2: Database Configuration (Weeks 2-3) 
+### Phase 2: Database Configuration (Weeks 2-3)
 - Design CockroachDB schema with indexes (e.g., `CREATE INDEX ON products (slug)`).
 - Configure Supabase for user authentication and secondary data.
 - Create custom migration script for CockroachDB compatibility with Drizzle ORM.
 
-### Phase 3: Application Refactoring (Weeks 4-5) 
+### Phase 3: Application Refactoring (Weeks 4-5)
 - Use SSG for top 10K product pages, ISR for others.
-- Refactor API routes to Workers, minimizing database calls.
+- Refactor API routes and Server Actions to run efficiently as **Vercel Serverless/Edge Functions**, minimizing database calls and optimizing remote calls to KV/R2.
 
-### Phase 4: Client-Side Enhancements (Week 6) 
+### Phase 4: Client-Side Enhancements (Week 6)
 - Implement service workers, WebAssembly, and async loading.
 
-### Phase 5: Image Pipeline (Week 7) 
+### Phase 5: Image Pipeline (Week 7)
 - Automate WebP conversion and upload to R2.
 
-### Phase 6: Monitoring and Tuning (Week 8) 
-- Deploy Cloudflare, CockroachDB, and Supabase monitoring; target <2B RUs/month.
+### Phase 6: Monitoring and Tuning (Week 8)
+- Deploy **Vercel**, CockroachDB, and Supabase monitoring; potentially add Cloudflare monitoring for KV/R2. Target <2B RUs/month and stay within Vercel/Cloudflare free tiers.
 
 ## Timeline
 
@@ -180,17 +181,17 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 
 ## Risks and Mitigations
 
-- **Free-Tier Limits**: Monitor Cloudflare Workers (100,000 requests/day), Supabase (2GB bandwidth), and CockroachDB RUs (<2B/month) to avoid overages.
-- **ToS Violations**: Use VPNs and unique emails for CockroachDB cycling; review Cloudflare and Supabase ToS.
-- **Performance Variability**: Optimize Workers' code and caching for efficiency.
+- **Free-Tier Limits**: Monitor **Vercel usage** (Function invocations/duration, bandwidth), Cloudflare KV/R2 usage, Supabase limits, and CockroachDB RUs (<2B/month) to avoid overages and potential costs.
+- **ToS Violations**: Use VPNs and unique emails for CockroachDB cycling; review Vercel, Cloudflare, and Supabase ToS.
+- **Performance Variability**: Optimize **Vercel Functions'** code, caching (local Vercel caches and remote KV), and database interaction for efficiency. Network latency between Vercel and Cloudflare could impact performance for KV/R2 access.
 
 ## Implementation Progress
 
 ### Completed Tasks
 
 #### Phase 1: Infrastructure Setup
-- ✅ Created Cloudflare Pages configuration with wrangler.toml
-- ✅ Set up project structure for Cloudflare deployment
+- ✅ Created **Vercel project configuration** (e.g., `vercel.json`, if needed)
+- ✅ Set up project structure for **Vercel deployment**
 - ✅ Added CockroachDB integration
 - ✅ Integrated Supabase for authentication
 - ✅ Configured R2 for image storage
@@ -270,15 +271,15 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 
 ### In Progress
 - 🔄 Fine-tuning database query patterns to minimize RUs
-- 🔄 Optimizing Cloudflare Workers for edge performance
+- 🔄 Optimizing **Vercel Functions** for performance
 - 🔄 Testing full CockroachDB account cycling process
 - 🔄 Implementing data model relationship maintenance during database migrations
 - 🔄 Enhancing error handling for database connection timeouts
-- 🔄 Refining React hydration strategy for Cloudflare's HTML processing
+- 🔄 Refining React hydration strategy for **Vercel's deployment environment**
 - 🔄 Optimizing component structure to eliminate layout shifts
 
 ### Remaining Tasks
-- ⏳ Integrate monitoring with Cloudflare Analytics dashboard
+- ⏳ Integrate monitoring with **Vercel Analytics** dashboard (and potentially Cloudflare for KV/R2)
 - ⏳ Conduct final end-to-end performance validation with real-world traffic patterns
 - ⏳ Document operational procedures for monthly account cycling
 - ⏳ Create automated scripts for database cycling process
@@ -286,7 +287,7 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 
 ## Conclusion
 
-TurboMart replaces Oracle VMs with Cloudflare Pages and Workers, integrates Supabase for user management, and retains CockroachDB with its single-account cycling strategy. This delivers a fast, scalable, zero-cost e-commerce platform rivaling industry leaders, leveraging global CDNs and edge computing.
+TurboMart replaces Oracle VMs with **Vercel hosting**, integrates Supabase for user management, and retains CockroachDB with its single-account cycling strategy. It utilizes **Cloudflare R2 and KV remotely** for storage and caching. This aims to deliver a fast, scalable e-commerce platform rivaling industry leaders, leveraging **Vercel's serverless platform and CDN**, while carefully managing potential cross-service costs to maintain low operational expenses.
 
 ## Technical Notes
 
@@ -300,15 +301,15 @@ While CockroachDB is PostgreSQL-compatible, it doesn't fully support all Postgre
 
 These adaptations allow TurboMart to leverage CockroachDB's free trial while maintaining compatibility with the codebase.
 
-### React Hydration with Cloudflare
+### React Hydration Considerations
 
-When deploying through Cloudflare Pages, the following considerations apply:
+When deploying through **Vercel**, the following considerations may apply:
 
-1. **HTML Processing**: Cloudflare may add processing attributes to HTML elements during server rendering, which can cause React hydration mismatches.
+1. **HTML Differences**: Differences between server-rendered HTML and client-rendered HTML can cause React hydration mismatches.
 2. **Hydration Suppression**: The application uses `suppressHydrationWarning` on the body element to prevent non-critical mismatches from breaking the UI.
-3. **Project Structure**: The App Router structure must be carefully maintained to avoid conflicting layouts and missing HTML/body tags.
+3. **Project Structure**: The App Router structure must be carefully maintained to avoid conflicting layouts and missing HTML/body tags, ensuring compatibility with Vercel's build and rendering process.
 
-These optimizations ensure the application can run smoothly on Cloudflare's edge network while maintaining React's client-side performance benefits.
+These optimizations ensure the application can run smoothly on **Vercel** while maintaining React's client-side performance benefits.
 
 ### Build Process Optimization
 
@@ -320,7 +321,7 @@ TurboMart implements several optimizations to ensure smooth build processes:
 4. **Not-Found Handling**: Custom not-found pages use client-side components to avoid server-side dependencies.
 5. **Error Handling**: Robust error handling for database connections prevents build failures.
 
-These optimizations ensure successful builds even without database connections, allowing for deployment to edge environments.
+These optimizations ensure successful builds even without database connections, allowing for deployment to **Vercel**.
 
 ### Next.js 15 PPR Considerations
 
