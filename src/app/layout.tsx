@@ -11,7 +11,6 @@ import { Toaster } from "sonner";
 import { WelcomeToast } from "./welcome-toast";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { InitialDataGuardProvider } from "@/components/ui/initial-data-guard-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://turbomart.example.com"),
@@ -35,7 +34,7 @@ export default async function RootLayout({
         className={`${GeistSans.variable} ${GeistMono.variable} flex flex-col overflow-y-auto overflow-x-hidden antialiased`}
         suppressHydrationWarning
       >
-        <InitialDataGuardProvider>
+        <>
           <div className="flex min-h-screen flex-col">
             <header className="sticky top-0 z-10 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900 text-white shadow-lg">
               {/* Top bar with logo, search, and user controls */}
@@ -158,7 +157,7 @@ export default async function RootLayout({
             <WelcomeToast />
           </Suspense>
           <Analytics scriptSrc="/insights/events.js" endpoint="/hfi/events" />
-        </InitialDataGuardProvider>
+        </>
       </body>
     </html>
   );

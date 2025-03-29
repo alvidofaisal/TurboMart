@@ -1,7 +1,5 @@
 import { Link } from "@/components/ui/link";
 import { getCollections, getProductCount } from "@/lib/queries";
-import { InitialLoadingState } from "@/components/ui/loading-state";
-import { Suspense } from "react";
 import Image from "next/image";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 import { HeroBackground } from "@/components/ui/hero-background";
@@ -66,9 +64,8 @@ function HeroBanner({ productCount }: { productCount?: { count: number } }) {
   );
 }
 
-// Separate component for home content to enable Suspense
-async function HomeContent() {
-  // Fetch real-time data from the database
+export default async function HomePage() {
+  // Fetch real-time data from the database directly here
   const [collections, productCount] = await Promise.all([
     getCollections(),
     getProductCount(),
@@ -84,7 +81,7 @@ async function HomeContent() {
   }
   
   let imageCount = 0;
-
+  
   return (
     <div className="container mx-auto px-4">
       {/* Hero Banner with product stats */}
@@ -147,13 +144,5 @@ async function HomeContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function HomePage() {
-  return (
-    <Suspense fallback={<InitialLoadingState />}>
-      <HomeContent />
-    </Suspense>
   );
 }

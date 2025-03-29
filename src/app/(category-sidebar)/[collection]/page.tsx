@@ -2,18 +2,20 @@ import { Link } from "@/components/ui/link";
 import { db } from "@/db";
 import { collections } from "@/db/schema";
 import { getCollectionDetails } from "@/lib/queries";
-import { InitialLoadingState } from "@/components/ui/loading-state";
-import { Suspense } from "react";
-
 import Image from "next/image";
 
 export async function generateStaticParams() {
   return await db.select({ collection: collections.slug }).from(collections);
 }
 
-// Separate component for collection content to enable Suspense
-async function CollectionContent({ collectionName }: { collectionName: string }) {
-  // Fetch real-time data from the database
+export default async function CollectionPage(props: {
+  params: Promise<{
+    collection: string;
+  }>;
+}) {
+  const collectionName = decodeURIComponent((await props.params).collection);
+
+  // Fetch real-time data from the database directly here
   const collections = await getCollectionDetails(collectionName);
   
   if (collections.length === 0) {
@@ -56,19 +58,5 @@ async function CollectionContent({ collectionName }: { collectionName: string })
         </div>
       ))}
     </div>
-  );
-}
-
-export default async function CollectionPage(props: {
-  params: Promise<{
-    collection: string;
-  }>;
-}) {
-  const collectionName = decodeURIComponent((await props.params).collection);
-
-  return (
-    <Suspense fallback={<InitialLoadingState />}>
-      <CollectionContent collectionName={collectionName} />
-    </Suspense>
   );
 }

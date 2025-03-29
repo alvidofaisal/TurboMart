@@ -256,12 +256,6 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 - ✅ Optimized full-text search query pattern in CockroachDB for better performance and result relevance
 - ✅ Implemented robust error handling for search functionality with fallback mechanisms
 - ✅ Fixed subcategory product display issue where "No products" message was shown even when products were available
-- ✅ Implemented loading states to prevent flash of mock data during initial page load
-- ✅ Created client-side data guard system to ensure first-time visitors see proper loading indicators
-- ✅ Used React Suspense boundaries for better loading state management
-- ✅ Enhanced unstable_cache implementation to prevent mock data caching in production
-- ✅ Implemented reliable database connection helper with automatic retry logic
-- ✅ Fixed initial page load issues to ensure real data is always displayed in production
 
 #### Phase 6: Image Pipeline
 - ✅ Created WebP conversion pipeline for product images
@@ -277,6 +271,7 @@ TurboMart enhances NextFaster with cost-free, performance-driven features:
 - 🔄 Enhancing error handling for database connection timeouts
 - 🔄 Refining React hydration strategy for **Vercel's deployment environment**
 - 🔄 Optimizing component structure to eliminate layout shifts
+- ⚠️ **Debugging lack of observed activity in Cloudflare KV/R2 from Vercel functions**
 
 ### Remaining Tasks
 - ⏳ Integrate monitoring with **Vercel Analytics** dashboard (and potentially Cloudflare for KV/R2)
@@ -329,8 +324,6 @@ TurboMart addresses specific challenges with Next.js 15's Partial Prerendering (
 
 1. **Cookie Access in PPR**: Next.js 15's PPR has limitations when accessing cookies during server-side rendering, particularly for authentication. TurboMart implements:
    - Safe cookie access patterns with proper fallbacks
-   - Client-side data guards to prevent flash of mock data
-   - Custom-built InitialDataGuardProvider to ensure consistent user experience
 
 2. **Build vs. Runtime Detection**: The application carefully distinguishes between:
    - Build-time environment (using mock data)
@@ -338,7 +331,6 @@ TurboMart addresses specific challenges with Next.js 15's Partial Prerendering (
    - Production runtime (using real database credentials)
 
 3. **Database Handling**: Robust database connection management with:
-   - Automatic connection retries
    - Graceful error handling
    - Clear separation between mock and real data sources
 
