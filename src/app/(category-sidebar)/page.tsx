@@ -23,7 +23,7 @@ function formatNumber(num: number): string {
 }
 
 // Hero banner component for the home page
-function HeroBanner({ productCount }: { productCount?: { count: number } }) {
+function HeroBanner() {
   return (
     <div className="relative mb-8 overflow-hidden rounded-lg bg-primary-800 shadow-lg">
       {/* Background overlay - lowest z-index */}
@@ -35,21 +35,21 @@ function HeroBanner({ productCount }: { productCount?: { count: number } }) {
       {/* Content container with higher z-index */}
       <div className="container relative z-10 mx-auto flex flex-col items-center px-4 py-12 text-center md:flex-row md:text-left lg:py-16">
         <div className="mb-8 flex-1 md:mb-0">
-          {/* Product stats as main highlight */}
-          {productCount && (
-            <div className="mb-5 transform animate-pulse rounded-xl bg-white/20 px-6 py-5 backdrop-blur-sm md:max-w-md">
-              <div className="flex flex-col items-center gap-1 md:items-start">
-                <div className="flex items-center gap-2">
-                  <ShoppingBag className="h-6 w-6 text-white" />
-                  <span className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
-                    {formatNumber(productCount.count)}
-                  </span>
-                </div>
-                <h2 className="text-xl font-bold text-white md:text-2xl">Products At Your Fingertips</h2>
-                <p className="text-sm text-white/90">Delivered in milliseconds, not minutes</p>
+          {/* Product stats as main highlight - remove the conditional check */}
+          {/* Always display the hardcoded stats */}
+          <div className="mb-5 transform animate-pulse rounded-xl bg-white/20 px-6 py-5 backdrop-blur-sm md:max-w-md">
+            <div className="flex flex-col items-center gap-1 md:items-start">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-6 w-6 text-white" />
+                {/* Replace dynamic count with specific hardcoded number */}
+                <span className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
+                  1,019,681
+                </span>
               </div>
+              <h2 className="text-xl font-bold text-white md:text-2xl">Products At Your Fingertips</h2>
+              <p className="text-sm text-white/90">Delivered in milliseconds, not minutes</p>
             </div>
-          )}
+          </div>
           
           <h1 className="mb-3 text-3xl font-bold text-white md:text-4xl lg:text-5xl">The Fastest Shop Alive</h1>
           <p className="mb-6 text-lg text-white/90 md:pr-8">
@@ -85,7 +85,7 @@ export default async function HomePage() {
   return (
     <div className="container mx-auto px-4">
       {/* Hero Banner with product stats */}
-      <HeroBanner productCount={productCount} />
+      <HeroBanner />
       
       {/* Categories */}
       {collections.map((collection: Collection) => (
